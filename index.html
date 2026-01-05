@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Drag & Throw Physics</title>
-
+  <title>Mobile Physics Game</title>
   <style>
     html, body {
       margin: 0;
@@ -13,16 +12,38 @@
       background: #111;
       touch-action: none;
     }
-
     canvas {
       display: block;
+    }
+    #ui {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background: #333;
+      color: white;
+    }
+    button:active {
+      background: #555;
     }
   </style>
 </head>
 <body>
 
-  <canvas id="game"></canvas>
-  <script src="main.js"></script>
+<canvas id="game"></canvas>
+<div id="ui">
+  <button id="spawnMode">Spawn Mode: OFF</button>
+  <button id="reset">Reset</button>
+</div>
+<script src="main.js"></script>
 
 </body>
 </html>
