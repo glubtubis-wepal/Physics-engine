@@ -15,7 +15,6 @@ function updatePhysics() {
     if (b.y + b.radius > canvas.height) { b.y = canvas.height - b.radius; b.vy *= -bounce; }
   }
 
-  // Ball-to-ball collisions
   for (let i = 0; i < balls.length; i++) {
     for (let j = i + 1; j < balls.length; j++) {
       resolveBallCollision(balls[i], balls[j]);
@@ -23,6 +22,7 @@ function updatePhysics() {
   }
 }
 
+// Stable elastic collision
 function resolveBallCollision(a, b) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
@@ -34,17 +34,19 @@ function resolveBallCollision(a, b) {
     const ny = dy / dist;
     const overlap = (minDist - dist) / 2;
 
+    // Separate
     a.x -= nx * overlap;
     a.y -= ny * overlap;
     b.x += nx * overlap;
     b.y += ny * overlap;
 
+    // Elastic velocities
     const dvx = a.vx - b.vx;
     const dvy = a.vy - b.vy;
-    const impulse = dvx * nx + dvy * ny;
+    const dot = dvx * nx + dvy * ny;
+    if (dot > 0) return;
 
-    if (impulse > 0) return;
-
+    const impulse = 2 * dot / 2; // equal mass
     a.vx -= impulse * nx;
     a.vy -= impulse * ny;
     b.vx += impulse * nx;
