@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Mobile Physics Game</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #111;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #ui {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+    }
+
+    button {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: none;
+      background: #333;
+      color: white;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="ui">
+  <button id="left">◀</button>
+  <button id="right">▶</button>
+</div>
+
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // Simple physics object
+  const player = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    vx: 0,
+    vy: 0,
+    radius: 20
+  };
+
+  const gravity = 0.6;
+  const friction = 0.9;
+  let moveLeft = false;
+  let moveRight = false;
+
+  document.getElementById("left").ontouchstart = () => moveLeft = true;
+  document.getElementById("left").ontouchend = () => moveLeft = false;
+  document.getElementById("right").ontouchstart = () => moveRight = true;
+  document.getElementById("right").ontouchend = () => moveRight = false;
+
+  function physicsStep() {
+    if (moveLeft) player.vx -= 1;
+    if (moveRight) player.vx += 1;
+
+    player.vy += gravity;
+
+    player.x += player.vx;
+    player.y += player.vy;
+
+    player.vx *= friction;
+
+    // Floor collision
+    if (player.y + player.radius > canvas.height) {
+      player.y = canvas.height - player.radius;
+      player.vy *= -0.6;
+    }
+
+    // Walls
+    if (player.x - player.radius < 0) {
+      player.x = player.radius;
+      player.vx *= -0.5;
+    }
+    if (player.x + player.radius > canvas.width) {
+      player.x = canvas.width - player.radius;
+      player.vx *= -0.5;
+    }
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#4af";
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function gameLoop() {
+    physicsStep();
+    render();
+    requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
+</script>
+
+</body>
+</html>
