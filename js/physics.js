@@ -1,55 +1,39 @@
-const gravity = 0.6;
-const friction = 0.99;
-const bounce = 0.8;
-
-function updatePhysics() {
-  for (const b of balls) {
-    b.vy += gravity;
-    b.x += b.vx;
-    b.y += b.vy;
-    b.vx *= friction;
-    b.vy *= friction;
-
-    if (b.x - b.radius < 0) { b.x = b.radius; b.vx *= -bounce; }
-    if (b.x + b.radius > canvas.width) { b.x = canvas.width - b.radius; b.vx *= -bounce; }
-    if (b.y + b.radius > canvas.height) { b.y = canvas.height - b.radius; b.vy *= -bounce; }
-  }
-
-  for (let i = 0; i < balls.length; i++) {
-    for (let j = i + 1; j < balls.length; j++) {
-      resolveBallCollision(balls[i], balls[j]);
-    }
-  }
-}
-
-// Stable elastic collision
 function resolveBallCollision(a, b) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const dist = Math.hypot(dx, dy);
   const minDist = a.radius + b.radius;
 
-  if (dist < minDist && dist > 0) {
-    const nx = dx / dist;
-    const ny = dy / dist;
-    const overlap = (minDist - dist) / 2;
+  if (dist === 0 || dist >= minDist) return;
 
-    // Separate
-    a.x -= nx * overlap;
-    a.y -= ny * overlap;
-    b.x += nx * overlap;
-    b.y += ny * overlap;
+  // Normal vector
+  const nx = dx / dist;
+  const ny = dy / dist;
 
-    // Elastic velocities
-    const dvx = a.vx - b.vx;
-    const dvy = a.vy - b.vy;
-    const dot = dvx * nx + dvy * ny;
-    if (dot > 0) return;
+  // Tangent vector
+  const tx = -ny;
+  const ty = nx;
 
-    const impulse = 2 * dot / 2; // equal mass
-    a.vx -= impulse * nx;
-    a.vy -= impulse * ny;
-    b.vx += impulse * nx;
-    b.vy += impulse * ny;
-  }
+  // Separate overlap COMPLETELY
+  const overlap = minDist - dist;
+  a.x -= nx * overlap / 2;
+  a.y -= ny * overlap / 2;
+  b.x += nx * overlap / 2;
+  b.y += ny * overlap / 2;
+
+  // Project velocities onto normal & tangent
+  const vAn = a.vx * nx + a.vy * ny;
+  const vAt = a.vx * tx + a.vy * ty;
+  const vBn = b.vx * nx + b.vy * ny;
+  const vBt = b.vx * tx + b.vy * ty;
+
+  // Swap NORMAL velocities (equal mass elastic collision)
+  const vAnAfter = vBn;
+  const vBnAfter = vAn;
+
+  // Convert back to x/y
+  a.vx = vAnAfter * nx + vAt * tx;
+  a.vy = vAnAfter * ny + vAt * ty;
+  b.vx = vBnAfter * nx + vBt * tx;
+  b.vy = vBnAfter * ny + vBt * ty;
 }
