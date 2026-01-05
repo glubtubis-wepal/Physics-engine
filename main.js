@@ -29,10 +29,10 @@ function spawnBall(x, y) {
     lastTap: 0
   };
   balls.push(ball);
-  initialPositions.push({x, y});
+  initialPositions.push({ x, y });
 }
 
-// Start with a few balls
+// Start with some balls
 spawnBall(200, 200);
 spawnBall(300, 200);
 spawnBall(400, 200);
@@ -40,7 +40,6 @@ spawnBall(400, 200);
 let selectedBall = null;
 let dragStart = null;
 let dragCurrent = null;
-let holdTimer = null;
 
 // ===== Modes =====
 let spawnMode = false;
@@ -49,10 +48,12 @@ document.getElementById("spawnMode").addEventListener("click", () => {
   document.getElementById("spawnMode").innerText = "Spawn Mode: " + (spawnMode ? "ON" : "OFF");
 });
 
-// Reset button
 document.getElementById("reset").addEventListener("click", () => {
   balls.length = 0;
-  for (const pos of initialPositions) spawnBall(pos.x, pos.y);
+  initialPositions.length = 0;
+  spawnBall(200, 200);
+  spawnBall(300, 200);
+  spawnBall(400, 200);
 });
 
 // Prevent scrolling
@@ -81,7 +82,7 @@ canvas.addEventListener("touchstart", e => {
       dragStart = { x, y };
       dragCurrent = { x, y };
 
-      // Triple tap
+      // Triple tap delete
       const now = Date.now();
       if (now - ball.lastTap < 500) {
         ball.tapCount++;
@@ -138,6 +139,7 @@ function resetDrag() {
 
 // ===== Physics Step =====
 function physicsStep() {
+  // Apply gravity & move
   for (const ball of balls) {
     ball.vy += gravity;
     ball.x += ball.vx;
@@ -145,47 +147,46 @@ function physicsStep() {
     ball.vx *= friction;
     ball.vy *= friction;
 
-    // Walls
+    // Wall collisions
     if (ball.x - ball.radius < 0) { ball.x = ball.radius; ball.vx *= -bounce; }
     if (ball.x + ball.radius > canvas.width) { ball.x = canvas.width - ball.radius; ball.vx *= -bounce; }
     if (ball.y + ball.radius > canvas.height) { ball.y = canvas.height - ball.radius; ball.vy *= -bounce; }
   }
 
-  // Ball collisions (robust)
+  // Ball-to-ball collisions (stable)
   for (let i = 0; i < balls.length; i++) {
     for (let j = i + 1; j < balls.length; j++) {
-      const b1 = balls[i];
-      const b2 = balls[j];
-
-      const dx = b2.x - b1.x;
-      const dy = b2.y - b1.y;
-      const dist = Math.hypot(dx, dy);
-      const minDist = b1.radius + b2.radius;
-
-      if (dist < minDist && dist > 0) {
-        const overlap = (minDist - dist) / 2;
-        const nx = dx / dist;
-        const ny = dy / dist;
-
-        b1.x -= nx * overlap;
-        b1.y -= ny * overlap;
-        b2.x += nx * overlap;
-        b2.y += ny * overlap;
-
-        // Simple elastic collision
-        const vxTotal = b1.vx - b2.vx;
-        const vyTotal = b1.vy - b2.vy;
-
-        const dot = vxTotal * nx + vyTotal * ny;
-        if (dot > 0) continue;
-
-        const impulse = 2 * dot / 2; // equal mass
-        b1.vx -= impulse * nx;
-        b1.vy -= impulse * ny;
-        b2.vx += impulse * nx;
-        b2.vy += impulse * ny;
-      }
+      collideBalls(balls[i], balls[j]);
     }
+  }
+}
+
+// ===== Stable Ball Collision =====
+function collideBalls(b1, b2) {
+  const dx = b2.x - b1.x;
+  const dy = b2.y - b1.y;
+  const dist = Math.hypot(dx, dy);
+  const minDist = b1.radius + b2.radius;
+
+  if (dist < minDist && dist > 0) {
+    // Separate balls
+    const overlap = (minDist - dist) / 2;
+    const nx = dx / dist;
+    const ny = dy / dist;
+
+    b1.x -= nx * overlap;
+    b1.y -= ny * overlap;
+    b2.x += nx * overlap;
+    b2.y += ny * overlap;
+
+    // Elastic collision
+    const kx = b1.vx - b2.vx;
+    const ky = b1.vy - b2.vy;
+    const p = 2 * (kx * nx + ky * ny) / 2; // equal mass
+    b1.vx -= p * nx;
+    b1.vy -= p * ny;
+    b2.vx += p * nx;
+    b2.vy += p * ny;
   }
 }
 
