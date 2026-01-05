@@ -42,7 +42,7 @@ function draw() {
   }
 }
 
-function loop(){
+function loop() {
   updatePhysics();
   draw();
   requestAnimationFrame(loop);
