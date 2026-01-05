@@ -139,7 +139,7 @@ function resetDrag() {
 
 // ===== Physics Step =====
 function physicsStep() {
-  // Apply gravity & move
+  // Move balls
   for (const ball of balls) {
     ball.vy += gravity;
     ball.x += ball.vx;
@@ -153,40 +153,42 @@ function physicsStep() {
     if (ball.y + ball.radius > canvas.height) { ball.y = canvas.height - ball.radius; ball.vy *= -bounce; }
   }
 
-  // Ball-to-ball collisions (stable)
+  // Ball-to-ball collisions (stable elastic)
   for (let i = 0; i < balls.length; i++) {
     for (let j = i + 1; j < balls.length; j++) {
-      collideBalls(balls[i], balls[j]);
+      const b1 = balls[i];
+      const b2 = balls[j];
+
+      const dx = b2.x - b1.x;
+      const dy = b2.y - b1.y;
+      const dist = Math.hypot(dx, dy);
+      const minDist = b1.radius + b2.radius;
+
+      if (dist < minDist && dist > 0) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const overlap = 0.5 * (minDist - dist);
+
+        // Separate
+        b1.x -= nx * overlap;
+        b1.y -= ny * overlap;
+        b2.x += nx * overlap;
+        b2.y += ny * overlap;
+
+        // Relative velocity
+        const vx = b1.vx - b2.vx;
+        const vy = b1.vy - b2.vy;
+        const dot = vx * nx + vy * ny;
+
+        if (dot > 0) continue; // already separating
+
+        const impulse = 2 * dot / 2; // equal mass
+        b1.vx -= impulse * nx;
+        b1.vy -= impulse * ny;
+        b2.vx += impulse * nx;
+        b2.vy += impulse * ny;
+      }
     }
-  }
-}
-
-// ===== Stable Ball Collision =====
-function collideBalls(b1, b2) {
-  const dx = b2.x - b1.x;
-  const dy = b2.y - b1.y;
-  const dist = Math.hypot(dx, dy);
-  const minDist = b1.radius + b2.radius;
-
-  if (dist < minDist && dist > 0) {
-    // Separate balls
-    const overlap = (minDist - dist) / 2;
-    const nx = dx / dist;
-    const ny = dy / dist;
-
-    b1.x -= nx * overlap;
-    b1.y -= ny * overlap;
-    b2.x += nx * overlap;
-    b2.y += ny * overlap;
-
-    // Elastic collision
-    const kx = b1.vx - b2.vx;
-    const ky = b1.vy - b2.vy;
-    const p = 2 * (kx * nx + ky * ny) / 2; // equal mass
-    b1.vx -= p * nx;
-    b1.vy -= p * ny;
-    b2.vx += p * nx;
-    b2.vy += p * ny;
   }
 }
 
@@ -220,7 +222,6 @@ function render() {
         vy *= -bounce;
       }
     }
-
     ctx.stroke();
   }
 
