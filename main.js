@@ -9,64 +9,106 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// ===== Player Physics Object =====
-const player = {
-  x: canvas.width / 2,
-  y: canvas.height / 2,
-  vx: 0,
-  vy: 0,
-  radius: 20
-};
-
 // ===== Physics Settings =====
 const gravity = 0.6;
-const friction = 0.92;
-const moveForce = 1.2;
+const friction = 0.99;
+const bounce = 0.7;
 
-// ===== Input =====
-let moveLeft = false;
-let moveRight = false;
+// ===== Objects (balls) =====
+const balls = [];
 
-// Touch buttons (must exist in HTML)
-const leftBtn = document.getElementById("left");
-const rightBtn = document.getElementById("right");
+for (let i = 0; i < 5; i++) {
+  balls.push({
+    x: 100 + i * 60,
+    y: 200,
+    vx: 0,
+    vy: 0,
+    radius: 20,
+    selected: false
+  });
+}
 
-leftBtn.addEventListener("touchstart", () => moveLeft = true);
-leftBtn.addEventListener("touchend", () => moveLeft = false);
+let selectedBall = null;
 
-rightBtn.addEventListener("touchstart", () => moveRight = true);
-rightBtn.addEventListener("touchend", () => moveRight = false);
+// ===== Touch Drag =====
+let dragStart = null;
+let dragCurrent = null;
 
 // Prevent scrolling
 document.body.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
 
+// ===== Touch Events =====
+canvas.addEventListener("touchstart", e => {
+  const touch = e.touches[0];
+  const x = touch.clientX;
+  const y = touch.clientY;
+
+  selectedBall = null;
+
+  for (const ball of balls) {
+    const dx = x - ball.x;
+    const dy = y - ball.y;
+    if (Math.sqrt(dx * dx + dy * dy) <= ball.radius) {
+      selectedBall = ball;
+      ball.selected = true;
+      dragStart = { x, y };
+      dragCurrent = { x, y };
+      break;
+    }
+  }
+});
+
+canvas.addEventListener("touchmove", e => {
+  if (!selectedBall) return;
+  const touch = e.touches[0];
+  dragCurrent = {
+    x: touch.clientX,
+    y: touch.clientY
+  };
+});
+
+canvas.addEventListener("touchend", () => {
+  if (!selectedBall || !dragStart || !dragCurrent) return;
+
+  const dx = dragStart.x - dragCurrent.x;
+  const dy = dragStart.y - dragCurrent.y;
+
+  // Apply throw force
+  selectedBall.vx += dx * 0.15;
+  selectedBall.vy += dy * 0.15;
+
+  selectedBall.selected = false;
+  selectedBall = null;
+  dragStart = null;
+  dragCurrent = null;
+});
+
 // ===== Physics Step =====
 function physicsStep() {
-  if (moveLeft) player.vx -= moveForce;
-  if (moveRight) player.vx += moveForce;
+  for (const ball of balls) {
+    ball.vy += gravity;
 
-  player.vy += gravity;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
 
-  player.x += player.vx;
-  player.y += player.vy;
+    ball.vx *= friction;
+    ball.vy *= friction;
 
-  player.vx *= friction;
+    // Floor
+    if (ball.y + ball.radius > canvas.height) {
+      ball.y = canvas.height - ball.radius;
+      ball.vy *= -bounce;
+    }
 
-  // Floor collision
-  if (player.y + player.radius > canvas.height) {
-    player.y = canvas.height - player.radius;
-    player.vy *= -0.6;
-  }
-
-  // Wall collisions
-  if (player.x - player.radius < 0) {
-    player.x = player.radius;
-    player.vx *= -0.5;
-  }
-
-  if (player.x + player.radius > canvas.width) {
-    player.x = canvas.width - player.radius;
-    player.vx *= -0.5;
+    // Walls
+    if (ball.x - ball.radius < 0) {
+      ball.x = ball.radius;
+      ball.vx *= -bounce;
+    }
+    if (ball.x + ball.radius > canvas.width) {
+      ball.x = canvas.width - ball.radius;
+      ball.vx *= -bounce;
+    }
   }
 }
 
@@ -74,10 +116,23 @@ function physicsStep() {
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "#4af";
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-  ctx.fill();
+  // Draw drag line
+  if (dragStart && dragCurrent) {
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(dragStart.x, dragStart.y);
+    ctx.lineTo(dragCurrent.x, dragCurrent.y);
+    ctx.stroke();
+  }
+
+  // Draw balls
+  for (const ball of balls) {
+    ctx.fillStyle = ball.selected ? "#ff0" : "#4af";
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 // ===== Game Loop =====
