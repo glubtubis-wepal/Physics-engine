@@ -13,14 +13,18 @@ resize();
 const gravity = 0.6;
 const friction = 0.99;
 const bounce = 0.7;
+const maxThrowPower = 25;
 
-// ===== Objects (balls) =====
+// Time scaling
+let timeScale = 1;
+
+// ===== Objects =====
 const balls = [];
 
-for (let i = 0; i < 5; i++) {
+function spawnBall(x, y) {
   balls.push({
-    x: 100 + i * 60,
-    y: 200,
+    x,
+    y,
     vx: 0,
     vy: 0,
     radius: 20,
@@ -28,16 +32,21 @@ for (let i = 0; i < 5; i++) {
   });
 }
 
+// Start with a few
+spawnBall(200, 200);
+spawnBall(300, 200);
+spawnBall(400, 200);
+
 let selectedBall = null;
 
-// ===== Touch Drag =====
+// ===== Touch Handling =====
 let dragStart = null;
 let dragCurrent = null;
+let lastTapTime = 0;
+let holdTimer = null;
 
-// Prevent scrolling
 document.body.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
 
-// ===== Touch Events =====
 canvas.addEventListener("touchstart", e => {
   const touch = e.touches[0];
   const x = touch.clientX;
@@ -45,17 +54,38 @@ canvas.addEventListener("touchstart", e => {
 
   selectedBall = null;
 
+  // Check ball selection
   for (const ball of balls) {
     const dx = x - ball.x;
     const dy = y - ball.y;
-    if (Math.sqrt(dx * dx + dy * dy) <= ball.radius) {
+    if (Math.hypot(dx, dy) <= ball.radius) {
       selectedBall = ball;
       ball.selected = true;
       dragStart = { x, y };
       dragCurrent = { x, y };
-      break;
+
+      // Slow motion ON
+      timeScale = 0.2;
+
+      // Long press = delete
+      holdTimer = setTimeout(() => {
+        balls.splice(balls.indexOf(ball), 1);
+        selectedBall = null;
+        dragStart = null;
+        dragCurrent = null;
+        timeScale = 1;
+      }, 700);
+
+      return;
     }
   }
+
+  // Double tap empty space = spawn
+  const now = Date.now();
+  if (now - lastTapTime < 300) {
+    spawnBall(x, y);
+  }
+  lastTapTime = now;
 });
 
 canvas.addEventListener("touchmove", e => {
@@ -68,12 +98,23 @@ canvas.addEventListener("touchmove", e => {
 });
 
 canvas.addEventListener("touchend", () => {
-  if (!selectedBall || !dragStart || !dragCurrent) return;
+  clearTimeout(holdTimer);
 
-  const dx = dragStart.x - dragCurrent.x;
-  const dy = dragStart.y - dragCurrent.y;
+  if (!selectedBall || !dragStart || !dragCurrent) {
+    timeScale = 1;
+    return;
+  }
 
-  // Apply throw force
+  let dx = dragStart.x - dragCurrent.x;
+  let dy = dragStart.y - dragCurrent.y;
+
+  // Clamp power
+  const mag = Math.hypot(dx, dy);
+  if (mag > maxThrowPower * 10) {
+    dx = (dx / mag) * maxThrowPower * 10;
+    dy = (dy / mag) * maxThrowPower * 10;
+  }
+
   selectedBall.vx += dx * 0.15;
   selectedBall.vy += dy * 0.15;
 
@@ -81,15 +122,18 @@ canvas.addEventListener("touchend", () => {
   selectedBall = null;
   dragStart = null;
   dragCurrent = null;
+
+  // Slow motion OFF
+  timeScale = 1;
 });
 
-// ===== Physics Step =====
+// ===== Physics =====
 function physicsStep() {
   for (const ball of balls) {
-    ball.vy += gravity;
+    ball.vy += gravity * timeScale;
 
-    ball.x += ball.vx;
-    ball.y += ball.vy;
+    ball.x += ball.vx * timeScale;
+    ball.y += ball.vy * timeScale;
 
     ball.vx *= friction;
     ball.vy *= friction;
@@ -116,17 +160,17 @@ function physicsStep() {
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw drag line
+  // Aim line
   if (dragStart && dragCurrent) {
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255,255,255,0.8)";
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(dragStart.x, dragStart.y);
     ctx.lineTo(dragCurrent.x, dragCurrent.y);
     ctx.stroke();
   }
 
-  // Draw balls
+  // Balls
   for (const ball of balls) {
     ctx.fillStyle = ball.selected ? "#ff0" : "#4af";
     ctx.beginPath();
