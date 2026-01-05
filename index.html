@@ -1,49 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
+  <title>Physics Sandbox</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Mobile Physics Game</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: #111;
-      touch-action: none;
-    }
-    canvas {
-      display: block;
-    }
-    #ui {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 10px;
-    }
-    button {
-      padding: 10px 15px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      background: #333;
-      color: white;
-    }
-    button:active {
-      background: #555;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <canvas id="game"></canvas>
+
 <div id="ui">
   <button id="spawnMode">Spawn Mode: OFF</button>
+  <button id="bombMode">Bomb Mode: OFF</button>
   <button id="reset">Reset</button>
 </div>
-<script src="main.js"></script>
+
+<script src="js/canvas.js"></script>
+<script src="js/ball.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/explosion.js"></script>
+<script src="js/input.js"></script>
+<script src="js/main.js"></script>
 
 </body>
-</html>
+</html
