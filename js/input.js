@@ -1,3 +1,8 @@
+// MUST be global
+let selectedBall = null;
+let dragStart = null;
+let dragCurrent = null;
+
 let spawnMode = false;
 let bombMode = false;
 
